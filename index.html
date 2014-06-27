@@ -1,0 +1,47 @@
+<!doctype html> 
+<html lang="en"> 
+<head> 
+	<meta charset="UTF-8" />
+	<title>Boulderdash!</title>
+	<!--<script data-main="js/main" src="js/libs/require/require.js"></script>-->
+    <script type="text/javascript" src="js/phaser.min.js"></script>
+    <script type="text/javascript" src="js/Boot.js"></script>
+    <script type="text/javascript" src="js/Preloader.js"></script>
+    <script type="text/javascript" src="js/MainMenu.js"></script>
+    <script type="text/javascript" src="js/Game.js"></script>
+
+    <style type="text/css">
+        body {
+            margin: 0;
+        }
+
+        #game {
+            margin: 0 auto;
+            width:640px;
+        }
+        #rules p {
+            margin: 0;
+        }
+    </style>
+</head>
+<body>
+<div id="game">
+    <div id="rules">
+    </div>
+</div>
+<script type="text/javascript">
+(function () {
+
+    var game = new Phaser.Game(640, 640 , Phaser.CANVAS, 'game');
+
+    game.state.add('Boot', Boulderdash.Boot);
+    game.state.add('Preloader', Boulderdash.Preloader);
+    game.state.add('MainMenu', Boulderdash.MainMenu);
+    game.state.add('Game', Boulderdash.Game);
+
+    game.state.start('Boot');
+
+})();
+</script>
+</body>
+</html>
