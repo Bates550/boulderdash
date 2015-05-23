@@ -13,9 +13,18 @@ Boulderdash.Game.prototype = {
         this.restart_key = this.input.keyboard.addKey(Phaser.Keyboard.R);
         this.quit_key = this.input.keyboard.addKey(Phaser.Keyboard.Q);
 
-
-        this.grid = [];
+        this.spriteSize = 32; // px
+        this.scale = 2;
         this.gridSize = 10;
+        this.cellSize = this.spriteSize * this.scale;
+        this.grid = [];
+        this.rocks = []; // Array of 1D rock
+        this.numRocks = 50;
+
+        this.gameWon = false;
+
+        /* Fill grid with gridSize^2 cell objects
+         */
         for (var i=0; i < this.gridSize; i++) {
             this.grid.push([]);
             for (var j=0; j < this.gridSize; j++) {
@@ -23,51 +32,57 @@ Boulderdash.Game.prototype = {
             }
         }
 
-        this.rocks = []; // Array of 1D rock
-        this.numRocks = 50;
+        /* Fill tmp with numbers 0 through gridSize^2
+         */
         var tmp = [];
         for (var i=0; i < this.gridSize*this.gridSize; i++) {
             tmp.push(i);
         }
+
+        /* Shuffle tmp and use first numRocks numbers contained as locations for rocks.
+         * Numbers given are 1D.
+         */
         tmp = shuffle(tmp);
         for (var i=0; i < this.numRocks; i++) {
             var rock = tmp.pop();
             this.rocks.push(rock);
         }
-        this.gameWon = false;
         console.assert(this.rocks.length == this.numRocks);
 
-        this.ground = this.add.tileSprite(0, 0, 320, 320, 'ground');
-        this.ground.scale.setTo(2, 2);
+        /* Tile the ground to all columns in the grid except the rightmost one, which is the goal.
+         */
+        var groundCover = this.cellSize * (this.gridSize-1)
+        this.ground = this.add.tileSprite(0, 0, groundCover, groundCover, 'ground');
+        this.ground.scale.setTo(this.scale, this.scale);
 
         for (var i=0; i < this.gridSize; i++) {
-            var tmpSprite = this.add.sprite(2*32*9, 2*32*i, 'goal');
-            tmpSprite.scale.setTo(2, 2);
+            var tmpSprite = this.add.sprite(this.cellSize*(this.gridSize-1), this.cellSize*i, 'goal');
+            tmpSprite.scale.setTo(this.scale, this.for);
         }
 
         for (var i=0; i < this.numRocks; i++) {
             var rockX = this.rocks[i]%this.gridSize;
             var rockY = Math.floor(this.rocks[i]/this.gridSize);
-            this.grid[rockX][rockY] = this.add.sprite(rockX*2*32, rockY*2*32, 'rock');
+            this.grid[rockX][rockY] = this.add.sprite(rockX*this.cellSize, rockY*this.cellSize, 'rock');
             this.grid[rockX][rockY].holds = 'rock'
-            this.grid[rockX][rockY].scale.setTo(2, 2);
+            this.grid[rockX][rockY].scale.setTo(this.scale, this.scale);
         }
 
         var start = tmp.pop();
         var startX = start%this.gridSize;
         var startY = Math.floor(start/this.gridSize);
 
-        this.player = this.add.sprite(startX*2*32, startY*2*32, 'player');  
-        this.player.scale.setTo(2, 2);   
+        this.player = this.add.sprite(startX*this.cellSize, startY*this.cellSize, 'player');
+        this.player.scale.setTo(this.scale, this.scale);
 
         this.playerGroup = this.add.group();
 
-        this.playerLeft = this.playerGroup.create(startX*2*32, startY*2*32, 'playerLeft');
-        this.playerRight = this.playerGroup.create(startX*2*32, startY*2*32, 'playerRight');
-        this.playerUp = this.playerGroup.create(startX*2*32, startY*2*32, 'playerUp');
-        this.playerDown = this.playerGroup.create(startX*2*32, startY*2*32, 'playerDown');
+        this.playerLeft = this.playerGroup.create(startX*this.cellSize, startY*this.cellSize, 'playerLeft');
+        this.playerRight = this.playerGroup.create(startX*this.cellSize, startY*this.cellSize, 'playerRight');
+        this.playerUp = this.playerGroup.create(startX*this.cellSize, startY*this.cellSize, 'playerUp');
+        this.playerDown = this.playerGroup.create(startX*this.cellSize, startY*this.cellSize, 'playerDown');
 
-        this.playerGroup.setAll('visible', false);   
+        this.playerGroup.setAll('visible', false);
         this.playerGroup.setAll('scale.x', 2);
         this.playerGroup.setAll('scale.y', 2);
 
@@ -102,14 +117,12 @@ Boulderdash.Game.prototype = {
             this.quitGame();
         }
         var gridX, gridY;
-        if (++this.lastUpdated > 6) {
+        if (this.lastUpdated++ > 5) {
             this.lastUpdated = 0;
-        }
-        if (this.lastUpdated%20 == 0) {
             if (this.cursors.left.isDown) {
                 this.playerLeft.visible = true;
                 //if (this.grid[pixToGrid(this.player.x)-1][pixToGrid(this.player.y)] == null) {
-                gridX = pixToGrid(this.player.x)-1;   
+                gridX = pixToGrid(this.player.x)-1;
                 gridY = pixToGrid(this.player.y);
                 if (this.grid[gridX] !== undefined) {
                     if (this.grid[gridX][gridY].holds === null) {
@@ -120,20 +133,20 @@ Boulderdash.Game.prototype = {
                         if (this.grid[gridX-1] !== undefined) {
                             if (this.grid[gridX-1][gridY].holds === null) {
                                 // Move rock
-                                this.grid[gridX][gridY].x -= 2*32;
+                                this.grid[gridX][gridY].x -= this.cellSize;
                                 this.grid[gridX-1][gridY] = this.grid[gridX][gridY];
                                 this.grid[gridX][gridY] = {holds: null};
                                 // Move player
-                                this.player.x -= 2*32;         
-                                this.playerGroup.setAll('x', this.player.x);  
-                            }            
+                                this.player.x -= this.cellSize;
+                                this.playerGroup.setAll('x', this.player.x);
+                            }
                         }
                     }
                 }
             }
             else if (this.cursors.right.isDown) {
-                this.playerRight.visible = true;        
-                gridX = pixToGrid(this.player.x)+1;   
+                this.playerRight.visible = true;
+                gridX = pixToGrid(this.player.x)+1;
                 gridY = pixToGrid(this.player.y);
                 if (this.grid[gridX] !== undefined) {
                     if (this.grid[gridX][gridY].holds === null) {
@@ -144,20 +157,20 @@ Boulderdash.Game.prototype = {
                         if (this.grid[gridX+1] !== undefined) {
                             if (this.grid[gridX+1][gridY].holds === null) {
                                 // Move rock
-                                this.grid[gridX][gridY].x += 2*32;
+                                this.grid[gridX][gridY].x += this.cellSize;
                                 this.grid[gridX+1][gridY] = this.grid[gridX][gridY];
                                 this.grid[gridX][gridY] = {holds: null};
                                 // Move player
-                                this.player.x += 2*32;         
-                                this.playerGroup.setAll('x', this.player.x);  
-                            }            
+                                this.player.x += this.cellSize;
+                                this.playerGroup.setAll('x', this.player.x);
+                            }
                         }
                     }
                 }
             }
             else if (this.cursors.up.isDown) {
                 this.playerUp.visible = true;
-                gridX = pixToGrid(this.player.x);   
+                gridX = pixToGrid(this.player.x);
                 gridY = pixToGrid(this.player.y)-1;
                 if (this.grid[gridX][gridY] !== undefined) {
                     if (this.grid[gridX][gridY].holds === null) {
@@ -168,12 +181,12 @@ Boulderdash.Game.prototype = {
                         if (this.grid[gridX][gridY-1] !== undefined) {
                             if (this.grid[gridX][gridY-1].holds === null) {
                                 // Move rock
-                                this.grid[gridX][gridY].y -= 2*32;
+                                this.grid[gridX][gridY].y -= this.cellSize;
                                 this.grid[gridX][gridY-1] = this.grid[gridX][gridY];
                                 this.grid[gridX][gridY] = {holds: null};
                                 // Move player
-                                this.player.y -= 2*32;         
-                                this.playerGroup.setAll('y', this.player.y);  
+                                this.player.y -= this.cellSize;
+                                this.playerGroup.setAll('y', this.player.y);
                             }
                         }
                     }
@@ -181,7 +194,7 @@ Boulderdash.Game.prototype = {
             }
             else if (this.cursors.down.isDown) {
                 this.playerDown.visible = true;
-                gridX = pixToGrid(this.player.x);   
+                gridX = pixToGrid(this.player.x);
                 gridY = pixToGrid(this.player.y)+1;
                 if (this.grid[gridX][gridY] !== undefined) {
                     if (this.grid[gridX][gridY].holds === null) {
@@ -192,12 +205,12 @@ Boulderdash.Game.prototype = {
                         if (this.grid[gridX][gridY+1] !== undefined) {
                             if (this.grid[gridX][gridY+1].holds === null) {
                                 // Move rock
-                                this.grid[gridX][gridY].y += 2*32;
+                                this.grid[gridX][gridY].y += this.cellSize;
                                 this.grid[gridX][gridY+1] = this.grid[gridX][gridY];
                                 this.grid[gridX][gridY] = {holds: null};
                                 // Move player
-                                this.player.y += 2*32;         
-                                this.playerGroup.setAll('y', this.player.y);  
+                                this.player.y += this.cellSize;
+                                this.playerGroup.setAll('y', this.player.y);
                             }
                         }
                     }
@@ -211,10 +224,6 @@ Boulderdash.Game.prototype = {
         // Win condition
         if (pixToGrid(this.player.x) == 9) {
             this.state.start('Game');
-        }
-    
-        function wallLength(x, y) {
-
         }
 
         function pixToGrid(x) {
